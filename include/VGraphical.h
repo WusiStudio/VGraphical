@@ -8,7 +8,11 @@
 
 namespace ROOT_SPACE
 {
-    bool initGraphical(void);
+    class VGraphical
+    {
+    public:
+        static bool initGraphical(void);
+    };
 }
 
 #endif //__V_GRAPHICAL_H__
