@@ -1,7 +1,3 @@
-#define GLFW_INCLUDE_NONE
-#define GLFW_INCLUDE_VULKAN
-#include "GLFW/glfw3.h"
-
 #include "vulkanInfo.h"
 #include "VGraphical.h"
 #include "log.hpp"
@@ -9,10 +5,26 @@
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
+#if defined(NDEBUG) && defined(__GNUC__)
+#define U_ASSERT_ONLY __attribute__((unused))
+#else
+#define U_ASSERT_ONLY
+#endif
+
 vulkanInfo vulkanInfo::instance;
 
 namespace ROOT_SPACE
 {
+
+    #define GET_INSTANCE_PROC_ADDR(inst, entrypoint)                               \
+    {                                                                          \
+        vulInfo.fp##entrypoint =                                                 \
+            (PFN_vk##entrypoint)vkGetInstanceProcAddr(inst, "vk" #entrypoint); \
+        if (vulInfo.fp##entrypoint == NULL) {                                    \
+            LOG.error("vkGetInstanceProcAddr Failure: vkGetInstanceProcAddr failed to find vk" #entrypoint ); \
+            return true;                                                        \
+        }                                                                      \
+    }
 
     /*
     * Return 1 (true) if all layer names specified in check_names
@@ -103,6 +115,13 @@ namespace ROOT_SPACE
             "VK_LAYER_GOOGLE_unique_objects"
         };
 
+        glfwSetErrorCallback( VGraphical::__glfw_error_callback );
+
+        if (!glfwInit()) 
+        {
+            LOG.error("Cannot initialize GLFW.\nExiting ...");
+            return true;
+        }
 
         if (!glfwVulkanSupported())
         {
@@ -364,7 +383,158 @@ namespace ROOT_SPACE
             }
         }
 
-        LOG.info("hello vulkan demo");
+        // Having these GIPA queries of device extension entry points both
+        // BEFORE and AFTER vkCreateDevice is a good test for the loader
+        GET_INSTANCE_PROC_ADDR( vulInfo.inst, GetPhysicalDeviceSurfaceCapabilitiesKHR );
+        GET_INSTANCE_PROC_ADDR( vulInfo.inst, GetPhysicalDeviceSurfaceFormatsKHR );
+        GET_INSTANCE_PROC_ADDR( vulInfo.inst, GetPhysicalDeviceSurfacePresentModesKHR );
+        GET_INSTANCE_PROC_ADDR( vulInfo.inst, GetPhysicalDeviceSurfaceSupportKHR );
+
+        vkGetPhysicalDeviceProperties( vulInfo.gpu, &vulInfo.gpu_props );
+        
+        // Query with NULL data to get count
+        vkGetPhysicalDeviceQueueFamilyProperties( vulInfo.gpu, &vulInfo.queue_count, NULL );
+
+        vulInfo.queue_props = ( VkQueueFamilyProperties * )malloc( vulInfo.queue_count * sizeof( VkQueueFamilyProperties ) );
+        vkGetPhysicalDeviceQueueFamilyProperties(vulInfo.gpu, &vulInfo.queue_count, vulInfo.queue_props);
+
+        assert(vulInfo.queue_count >= 1);
+
+        vkGetPhysicalDeviceFeatures(vulInfo.gpu, &vulInfo.gpu_features);
+
+        //init device
+        float queue_priorities[1] = {0.0};
+        VkDeviceQueueCreateInfo queue; 
+        queue.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queue.pNext = NULL;
+        queue.queueFamilyIndex = vulInfo.graphics_queue_node_index;
+        queue.queueCount = 1;
+        queue.pQueuePriorities = queue_priorities;
+
+        VkPhysicalDeviceFeatures features;
+        memset(&features, 0, sizeof(features));
+        if ( vulInfo.gpu_features.shaderClipDistance ) 
+        {
+            features.shaderClipDistance = VK_TRUE;
+        }
+
+        VkDeviceCreateInfo device;
+        device.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        device.pNext = NULL;
+        device.queueCreateInfoCount = 1;
+        device.pQueueCreateInfos = &queue;
+        device.enabledLayerCount = 0;
+        device.ppEnabledLayerNames = NULL;
+        device.enabledExtensionCount = vulInfo.enabled_extension_count;
+        device.ppEnabledExtensionNames = (const char *const *)vulInfo.extension_names;
+        device.pEnabledFeatures = &features;
+
+        err = vkCreateDevice(vulInfo.gpu, &device, NULL, &vulInfo.device);
+        assert(!err);
+
+        GET_DEVICE_PROC_ADDR(vulInfo.device, CreateSwapchainKHR);
+        GET_DEVICE_PROC_ADDR(vulInfo.device, DestroySwapchainKHR);
+        GET_DEVICE_PROC_ADDR(vulInfo.device, GetSwapchainImagesKHR);
+        GET_DEVICE_PROC_ADDR(vulInfo.device, AcquireNextImageKHR);
+        GET_DEVICE_PROC_ADDR(vulInfo.device, QueuePresentKHR);
+
+        return false;
+    }
+
+    bool VGraphical::initWindow( GLFWwindow * p_window )
+    {
+        vulkanInfo & vulInfo = vulkanInfo::instance;
+        VkResult U_ASSERT_ONLY err;
+
+        // Create a WSI surface for the window:
+        VkSurfaceKHR t_surface;
+        vulInfo.surfaces[p_window] = t_surface;
+        glfwCreateWindowSurface( vulInfo.inst, p_window, NULL, &vulInfo.surfaces[p_window]);
+
+        // Iterate over each queue to learn whether it supports presenting:
+        VkBool32 *supportsPresent = (VkBool32 *)malloc(vulInfo.queue_count * sizeof(VkBool32));
+
+        for ( uint32_t i = 0; i < vulInfo.queue_count; i++) {
+            vulInfo.fpGetPhysicalDeviceSurfaceSupportKHR(vulInfo.gpu, i, vulInfo.surfaces[p_window], &supportsPresent[i]);
+        }
+
+        // Search for a graphics and a present queue in the array of queue
+        // families, try to find one that supports both
+        uint32_t graphicsQueueNodeIndex = UINT32_MAX;
+        uint32_t presentQueueNodeIndex = UINT32_MAX;
+
+        for ( uint32_t i = 0; i < vulInfo.queue_count; i++ ) 
+        {
+            if ( ( vulInfo.queue_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0 ) 
+            {
+                if ( graphicsQueueNodeIndex == UINT32_MAX ) {
+                    graphicsQueueNodeIndex = i;
+                }
+
+                if (supportsPresent[i] == VK_TRUE) {
+                    graphicsQueueNodeIndex = i;
+                    presentQueueNodeIndex = i;
+                    break;
+                }
+            }
+        }
+        if ( presentQueueNodeIndex == UINT32_MAX ) 
+        {
+            // If didn't find a queue that supports both graphics and present, then
+            // find a separate present queue.
+            for ( uint32_t i = 0; i < vulInfo.queue_count; ++i ) 
+            {
+                if (supportsPresent[i] == VK_TRUE) 
+                {
+                    presentQueueNodeIndex = i;
+                    break;
+                }
+            }
+        }
+        free(supportsPresent);
+
+        // Generate error if could not find both a graphics and a present queue
+        if (graphicsQueueNodeIndex == UINT32_MAX || presentQueueNodeIndex == UINT32_MAX) 
+        {
+            LOG.error("Swapchain Initialization Failure: Could not find a graphics and a present queue");
+            return true;
+        }
+
+        // TODO: Add support for separate queues, including presentation,
+        //       synchronization, and appropriate tracking for QueueSubmit.
+        // NOTE: While it is possible for an application to use a separate graphics
+        //       and a present queues, this demo program assumes it is only using
+        //       one:
+        if (graphicsQueueNodeIndex != presentQueueNodeIndex) {
+            LOG.error("Swapchain Initialization Failure: Could not find a common graphics and a present queue");
+            return true;
+        }
+
+        vulInfo.graphics_queue_node_index = graphicsQueueNodeIndex;
+
+        vkGetDeviceQueue( vulInfo.device, vulInfo.graphics_queue_node_index, 0,
+                     &vulInfo.queue);
+                     
+        // Get the list of VkFormat's that are supported:
+        uint32_t formatCount;
+        err = vulInfo.fpGetPhysicalDeviceSurfaceFormatsKHR(vulInfo.gpu, vulInfo.surfaces[p_window], &formatCount, NULL);
+        assert(!err);
+
+        VkSurfaceFormatKHR *surfFormats = (VkSurfaceFormatKHR *)malloc(formatCount * sizeof(VkSurfaceFormatKHR));
+        err = vulInfo.fpGetPhysicalDeviceSurfaceFormatsKHR(vulInfo.gpu, vulInfo.surfaces[p_window], &formatCount, surfFormats);
+        assert(!err);
+
+        // If the format list includes just one entry of VK_FORMAT_UNDEFINED,
+        // the surface has no preferred format.  Otherwise, at least one
+        // supported format will be returned.
+        if (formatCount == 1 && surfFormats[0].format == VK_FORMAT_UNDEFINED) {
+            vulInfo.format = VK_FORMAT_B8G8R8A8_UNORM;
+        } else {
+            assert(formatCount >= 1);
+            vulInfo.format = surfFormats[0].format;
+        }
+
+        vulInfo.color_space = surfFormats[0].colorSpace;
 
         return false;
     }

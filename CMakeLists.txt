@@ -9,6 +9,8 @@ include_directories(include)
 include_directories(${TOOLS_INCLUDE_DIR})
 include_directories(${GLFW_INCLUDE_DIR})
 
+aux_source_directory(src SRCS)
+
 if(BUILD_BY_OPENGL)
     include_directories(src/opengl/include)
     aux_source_directory(src/opengl/src SRCS)

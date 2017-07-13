@@ -2,6 +2,10 @@
 #ifndef __V_GRAPHICAL_H__
 #define __V_GRAPHICAL_H__
 
+#define GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_VULKAN
+#include "GLFW/glfw3.h"
+
 #ifndef ROOT_SPACE
 #define ROOT_SPACE ws
 #endif //ROOT_SPACE
@@ -12,6 +16,8 @@ namespace ROOT_SPACE
     {
     public:
         static bool initGraphical(void);
+        static bool initWindow( GLFWwindow * p_window );
+        static void __glfw_error_callback( int p_error, const char * p_description );
     };
 }
 
