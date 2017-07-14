@@ -20,9 +20,18 @@ namespace ROOT_SPACE
     {                                                                          \
         vulInfo.fp##entrypoint =                                                 \
             (PFN_vk##entrypoint)vkGetInstanceProcAddr(inst, "vk" #entrypoint); \
-        if (vulInfo.fp##entrypoint == NULL) {                                    \
+        if (vulInfo.fp##entrypoint == nullptr) {                                    \
             LOG.error("vkGetInstanceProcAddr Failure: vkGetInstanceProcAddr failed to find vk" #entrypoint ); \
             return true;                                                        \
+        }                                                                      \
+    }
+
+    #define GET_DEVICE_PROC_ADDR(dev, entrypoint)                                  \
+    {                                                                          \
+        vulInfo.fp##entrypoint =                                                 \
+            (PFN_vk##entrypoint)vkGetDeviceProcAddr(dev, "vk" #entrypoint);    \
+        if (vulInfo.fp##entrypoint == nullptr) {                                    \
+            LOG.error("vkGetDeviceProcAddr Failure: vkGetDeviceProcAddr failed to find vk" #entrypoint );                           \
         }                                                                      \
     }
 
@@ -93,27 +102,6 @@ namespace ROOT_SPACE
 
     bool VGraphical::initGraphical(void)
     {
-        VkResult err;
-
-        vulkanInfo & vulInfo = vulkanInfo::instance;
-		vulInfo.validate = true;
-
-        vulInfo.enabled_layer_count = 0;
-        vulInfo.enabled_extension_count = 0;
-
-        const char **instance_validation_layers = NULL;
-
-
-        char *instance_validation_layers_alt1[] = {
-            "VK_LAYER_LUNARG_standard_validation"
-        };
-
-        char *instance_validation_layers_alt2[] = {
-            "VK_LAYER_GOOGLE_threading",       "VK_LAYER_LUNARG_parameter_validation",
-            "VK_LAYER_LUNARG_object_tracker",  "VK_LAYER_LUNARG_image",
-            "VK_LAYER_LUNARG_core_validation", "VK_LAYER_LUNARG_swapchain",
-            "VK_LAYER_GOOGLE_unique_objects"
-        };
 
         glfwSetErrorCallback( VGraphical::__glfw_error_callback );
 
@@ -128,6 +116,28 @@ namespace ROOT_SPACE
             LOG.error("GLFW failed to find the Vulkan loader.\nExiting ...");
             return true;
         }
+
+        VkResult err;
+
+        vulkanInfo & vulInfo = vulkanInfo::instance;
+		vulInfo.validate = true;
+
+        vulInfo.enabled_layer_count = 0;
+        vulInfo.enabled_extension_count = 0;
+
+        const char **instance_validation_layers = nullptr;
+
+
+        char *instance_validation_layers_alt1[] = {
+            "VK_LAYER_LUNARG_standard_validation"
+        };
+
+        char *instance_validation_layers_alt2[] = {
+            "VK_LAYER_GOOGLE_threading",       "VK_LAYER_LUNARG_parameter_validation",
+            "VK_LAYER_LUNARG_object_tracker",  "VK_LAYER_LUNARG_image",
+            "VK_LAYER_LUNARG_core_validation", "VK_LAYER_LUNARG_swapchain",
+            "VK_LAYER_GOOGLE_unique_objects"
+        };
        
         /* Look for validation layers */
         VkBool32 validation_found = 0;
@@ -135,7 +145,7 @@ namespace ROOT_SPACE
         {
             //get instance layer count
             uint32_t instance_layer_count = 0;
-            err = vkEnumerateInstanceLayerProperties(&instance_layer_count, NULL);
+            err = vkEnumerateInstanceLayerProperties(&instance_layer_count, nullptr);
             assert(!err);
 
             instance_validation_layers = (const char **)instance_validation_layers_alt1;
@@ -208,13 +218,13 @@ namespace ROOT_SPACE
         }
 
         uint32_t instance_extension_count = 0;
-        err = vkEnumerateInstanceExtensionProperties( NULL, &instance_extension_count, NULL );
+        err = vkEnumerateInstanceExtensionProperties( nullptr, &instance_extension_count, nullptr );
         assert( !err );
 
         if ( instance_extension_count > 0 ) 
         {
             VkExtensionProperties *instance_extensions = (VkExtensionProperties *)malloc( sizeof( VkExtensionProperties ) * instance_extension_count);
-            err = vkEnumerateInstanceExtensionProperties( NULL, &instance_extension_count, instance_extensions);
+            err = vkEnumerateInstanceExtensionProperties( nullptr, &instance_extension_count, instance_extensions );
             assert( !err );
 
             for (uint32_t i = 0; i < instance_extension_count; i++) 
@@ -234,16 +244,17 @@ namespace ROOT_SPACE
 
 		VkApplicationInfo app;
 		app.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-		app.pNext = NULL;
-		app.pApplicationName = "";
+		app.pNext = nullptr;
+		app.pApplicationName = "haha";
 		app.applicationVersion = 0;
-		app.pEngineName = "";
+		app.pEngineName = "ws";
 		app.engineVersion = 0;
 		app.apiVersion = VK_API_VERSION_1_0;
 
 		VkInstanceCreateInfo inst_info;
 		inst_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		inst_info.pNext = NULL;
+		inst_info.pNext = nullptr;
+        inst_info.flags = 0;
 		inst_info.pApplicationInfo = &app;
 		inst_info.enabledLayerCount = vulInfo.enabled_layer_count;
 		inst_info.ppEnabledLayerNames = (const char *const *)instance_validation_layers;
@@ -252,7 +263,7 @@ namespace ROOT_SPACE
 
         uint32_t gpu_count;
 
-        err = vkCreateInstance( &inst_info, NULL, &vulInfo.inst );
+        err = vkCreateInstance( &inst_info, nullptr, &vulInfo.inst );
         if (err == VK_ERROR_INCOMPATIBLE_DRIVER) 
         {
             LOG.error( "vkCreateInstance Failure: Cannot find a compatible Vulkan installable client driver "
@@ -273,12 +284,12 @@ namespace ROOT_SPACE
         }
 
         /* Make initial call to query gpu_count, then second call for gpu info*/
-        err = vkEnumeratePhysicalDevices( vulInfo.inst, &gpu_count, NULL );
+        err = vkEnumeratePhysicalDevices( vulInfo.inst, &gpu_count, nullptr );
         assert( !err && gpu_count > 0 );
 
         if ( gpu_count > 0 ) 
         {
-            VkPhysicalDevice *physical_devices = (VkPhysicalDevice *)malloc(sizeof(VkPhysicalDevice) * gpu_count);
+            VkPhysicalDevice *physical_devices = (VkPhysicalDevice *)malloc(sizeof(VkPhysicalDevice) * gpu_count );
             err = vkEnumeratePhysicalDevices( vulInfo.inst, &gpu_count, physical_devices );
             assert(!err);
 
@@ -299,14 +310,14 @@ namespace ROOT_SPACE
         VkBool32 swapchainExtFound = 0;
         vulInfo.enabled_extension_count = 0;
 
-        err = vkEnumerateDeviceExtensionProperties( vulInfo.gpu, NULL, &device_extension_count, NULL );
+        err = vkEnumerateDeviceExtensionProperties( vulInfo.gpu, nullptr, &device_extension_count, nullptr );
 
         assert( !err );
 
         if (device_extension_count > 0) 
         {
             VkExtensionProperties *device_extensions = (VkExtensionProperties *)malloc (sizeof( VkExtensionProperties ) * device_extension_count );
-            err = vkEnumerateDeviceExtensionProperties( vulInfo.gpu, NULL, &device_extension_count, device_extensions );
+            err = vkEnumerateDeviceExtensionProperties( vulInfo.gpu, nullptr, &device_extension_count, device_extensions );
             assert( !err );
 
             for (uint32_t i = 0; i < device_extension_count; i++) {
@@ -365,9 +376,9 @@ namespace ROOT_SPACE
                 VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
             dbgCreateInfo.pfnCallback = vulInfo.use_break ? BreakCallback : dbgFunc;
             dbgCreateInfo.pUserData = &vulInfo;
-            dbgCreateInfo.pNext = NULL;
+            dbgCreateInfo.pNext = nullptr;
 
-            err = vulInfo.CreateDebugReportCallback(vulInfo.inst, &dbgCreateInfo, NULL,
+            err = vulInfo.CreateDebugReportCallback(vulInfo.inst, &dbgCreateInfo, nullptr,
                                               &vulInfo.msg_callback);
             switch (err) {
             case VK_SUCCESS:
@@ -392,8 +403,8 @@ namespace ROOT_SPACE
 
         vkGetPhysicalDeviceProperties( vulInfo.gpu, &vulInfo.gpu_props );
         
-        // Query with NULL data to get count
-        vkGetPhysicalDeviceQueueFamilyProperties( vulInfo.gpu, &vulInfo.queue_count, NULL );
+        // Query with nullptr data to get count
+        vkGetPhysicalDeviceQueueFamilyProperties( vulInfo.gpu, &vulInfo.queue_count, nullptr );
 
         vulInfo.queue_props = ( VkQueueFamilyProperties * )malloc( vulInfo.queue_count * sizeof( VkQueueFamilyProperties ) );
         vkGetPhysicalDeviceQueueFamilyProperties(vulInfo.gpu, &vulInfo.queue_count, vulInfo.queue_props);
@@ -406,7 +417,8 @@ namespace ROOT_SPACE
         float queue_priorities[1] = {0.0};
         VkDeviceQueueCreateInfo queue; 
         queue.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queue.pNext = NULL;
+        queue.flags = 0;
+        queue.pNext = nullptr;
         queue.queueFamilyIndex = vulInfo.graphics_queue_node_index;
         queue.queueCount = 1;
         queue.pQueuePriorities = queue_priorities;
@@ -420,16 +432,17 @@ namespace ROOT_SPACE
 
         VkDeviceCreateInfo device;
         device.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        device.pNext = NULL;
+        device.pNext = nullptr;
+        device.flags = 0;
         device.queueCreateInfoCount = 1;
         device.pQueueCreateInfos = &queue;
         device.enabledLayerCount = 0;
-        device.ppEnabledLayerNames = NULL;
+        device.ppEnabledLayerNames = nullptr;
         device.enabledExtensionCount = vulInfo.enabled_extension_count;
         device.ppEnabledExtensionNames = (const char *const *)vulInfo.extension_names;
         device.pEnabledFeatures = &features;
 
-        err = vkCreateDevice(vulInfo.gpu, &device, NULL, &vulInfo.device);
+        err = vkCreateDevice(vulInfo.gpu, &device, nullptr, &vulInfo.device);
         assert(!err);
 
         GET_DEVICE_PROC_ADDR(vulInfo.device, CreateSwapchainKHR);
@@ -449,7 +462,7 @@ namespace ROOT_SPACE
         // Create a WSI surface for the window:
         VkSurfaceKHR t_surface;
         vulInfo.surfaces[p_window] = t_surface;
-        glfwCreateWindowSurface( vulInfo.inst, p_window, NULL, &vulInfo.surfaces[p_window]);
+        glfwCreateWindowSurface( vulInfo.inst, p_window, nullptr, &vulInfo.surfaces[p_window]);
 
         // Iterate over each queue to learn whether it supports presenting:
         VkBool32 *supportsPresent = (VkBool32 *)malloc(vulInfo.queue_count * sizeof(VkBool32));
@@ -517,7 +530,7 @@ namespace ROOT_SPACE
                      
         // Get the list of VkFormat's that are supported:
         uint32_t formatCount;
-        err = vulInfo.fpGetPhysicalDeviceSurfaceFormatsKHR(vulInfo.gpu, vulInfo.surfaces[p_window], &formatCount, NULL);
+        err = vulInfo.fpGetPhysicalDeviceSurfaceFormatsKHR(vulInfo.gpu, vulInfo.surfaces[p_window], &formatCount, nullptr);
         assert(!err);
 
         VkSurfaceFormatKHR *surfFormats = (VkSurfaceFormatKHR *)malloc(formatCount * sizeof(VkSurfaceFormatKHR));
@@ -535,6 +548,57 @@ namespace ROOT_SPACE
         }
 
         vulInfo.color_space = surfFormats[0].colorSpace;
+
+
+        // Get Memory information and properties
+        vkGetPhysicalDeviceMemoryProperties(vulInfo.gpu, &vulInfo.memory_properties);
+
+
+        // create command poll
+        VkCommandPoolCreateInfo cmd_pool_info;
+        cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        cmd_pool_info.pNext = nullptr;
+        cmd_pool_info.queueFamilyIndex = vulInfo.graphics_queue_node_index;
+        cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+        err = vkCreateCommandPool(vulInfo.device, &cmd_pool_info, nullptr, &vulInfo.cmd_pool);
+        assert(!err);
+
+        VkCommandBufferAllocateInfo cmd;
+        cmd.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmd.pNext = nullptr;
+        cmd.commandPool = vulInfo.cmd_pool;
+        cmd.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmd.commandBufferCount = 1;
+
+        err = vkAllocateCommandBuffers(vulInfo.device, &cmd, &vulInfo.draw_cmd);
+        assert(!err);
+
+        // prepare buffers
+
+        VkSwapchainKHR oldSwapchain = vulInfo.swapchain;
+
+        // Check the surface capabilities and formats
+        VkSurfaceCapabilitiesKHR surfCapabilities;
+        err = vulInfo.fpGetPhysicalDeviceSurfaceCapabilitiesKHR( vulInfo.gpu, vulInfo.surfaces[p_window], &surfCapabilities );
+        assert(!err);
+
+        uint32_t presentModeCount;
+        err = vulInfo.fpGetPhysicalDeviceSurfacePresentModesKHR( vulInfo.gpu, vulInfo.surfaces[p_window], &presentModeCount, nullptr );
+        assert(!err);
+
+        VkPresentModeKHR *presentModes = (VkPresentModeKHR *)malloc(presentModeCount * sizeof(VkPresentModeKHR));
+        assert(presentModes);
+
+        err = vulInfo.fpGetPhysicalDeviceSurfacePresentModesKHR( vulInfo.gpu, vulInfo.surfaces[p_window], &presentModeCount, presentModes );
+        assert(!err);
+
+        VkExtent2D swapchainExtent;
+        // width and height are either both 0xFFFFFFFF, or both not 0xFFFFFFFF.
+        if (surfCapabilities.currentExtent.width == 0xFFFFFFFF)
+        {
+
+        }
 
         return false;
     }

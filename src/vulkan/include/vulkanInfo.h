@@ -32,11 +32,6 @@ public:
     VkQueueFamilyProperties *queue_props;
     uint32_t graphics_queue_node_index;
 
-    PFN_vkGetPhysicalDeviceSurfaceSupportKHR fpGetPhysicalDeviceSurfaceSupportKHR;
-    PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR fpGetPhysicalDeviceSurfaceCapabilitiesKHR;
-    PFN_vkGetPhysicalDeviceSurfaceFormatsKHR fpGetPhysicalDeviceSurfaceFormatsKHR;
-    PFN_vkGetPhysicalDeviceSurfacePresentModesKHR fpGetPhysicalDeviceSurfacePresentModesKHR;
-
     uint32_t enabled_layer_count;
     uint32_t enabled_extension_count;
     const char * extension_names[64];
@@ -44,6 +39,27 @@ public:
 
     VkFormat format;
     VkColorSpaceKHR color_space;
+
+    PFN_vkGetPhysicalDeviceSurfaceSupportKHR fpGetPhysicalDeviceSurfaceSupportKHR;
+    PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR fpGetPhysicalDeviceSurfaceCapabilitiesKHR;
+    PFN_vkGetPhysicalDeviceSurfaceFormatsKHR fpGetPhysicalDeviceSurfaceFormatsKHR;
+    PFN_vkGetPhysicalDeviceSurfacePresentModesKHR fpGetPhysicalDeviceSurfacePresentModesKHR;
+
+    PFN_vkCreateSwapchainKHR fpCreateSwapchainKHR;
+    PFN_vkDestroySwapchainKHR fpDestroySwapchainKHR;
+    PFN_vkGetSwapchainImagesKHR fpGetSwapchainImagesKHR;
+    PFN_vkAcquireNextImageKHR fpAcquireNextImageKHR;
+    PFN_vkQueuePresentKHR fpQueuePresentKHR;
+
+    VkSwapchainKHR swapchain;
+
+    VkCommandPool cmd_pool;
+
+
+    VkCommandBuffer setup_cmd; 
+    VkCommandBuffer draw_cmd;
+
+    VkPhysicalDeviceMemoryProperties memory_properties;
 
     uint32_t queue_count;
 };
