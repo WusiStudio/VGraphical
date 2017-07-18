@@ -6,6 +6,8 @@ option(BUILD_BY_OPENGL "build by opengl api" OFF)
 option(BUILD_BY_VULKAN "build by vulkan api" ON)
 
 include_directories(include)
+include_directories(${GLM_INCLUDE_DIR})
+include_directories(${IMEMORY_INCLUDE_DIR})
 include_directories(${TOOLS_INCLUDE_DIR})
 include_directories(${GLFW_INCLUDE_DIR})
 

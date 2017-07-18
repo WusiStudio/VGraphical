@@ -454,21 +454,21 @@ namespace ROOT_SPACE
         return false;
     }
 
-    bool VGraphical::initWindow( GLFWwindow * p_window )
+    bool VGraphical::initWindow( window & p_window )
     {
         vulkanInfo & vulInfo = vulkanInfo::instance;
         VkResult U_ASSERT_ONLY err;
 
         // Create a WSI surface for the window:
         VkSurfaceKHR t_surface;
-        vulInfo.surfaces[p_window] = t_surface;
-        glfwCreateWindowSurface( vulInfo.inst, p_window, nullptr, &vulInfo.surfaces[p_window]);
+        vulInfo.surfaces[p_window._GLFW_WindowHandle()] = t_surface;
+        glfwCreateWindowSurface( vulInfo.inst, p_window._GLFW_WindowHandle(), nullptr, &vulInfo.surfaces[p_window._GLFW_WindowHandle()]);
 
         // Iterate over each queue to learn whether it supports presenting:
         VkBool32 *supportsPresent = (VkBool32 *)malloc(vulInfo.queue_count * sizeof(VkBool32));
 
         for ( uint32_t i = 0; i < vulInfo.queue_count; i++) {
-            vulInfo.fpGetPhysicalDeviceSurfaceSupportKHR(vulInfo.gpu, i, vulInfo.surfaces[p_window], &supportsPresent[i]);
+            vulInfo.fpGetPhysicalDeviceSurfaceSupportKHR(vulInfo.gpu, i, vulInfo.surfaces[p_window._GLFW_WindowHandle()], &supportsPresent[i]);
         }
 
         // Search for a graphics and a present queue in the array of queue
@@ -530,11 +530,11 @@ namespace ROOT_SPACE
                      
         // Get the list of VkFormat's that are supported:
         uint32_t formatCount;
-        err = vulInfo.fpGetPhysicalDeviceSurfaceFormatsKHR(vulInfo.gpu, vulInfo.surfaces[p_window], &formatCount, nullptr);
+        err = vulInfo.fpGetPhysicalDeviceSurfaceFormatsKHR(vulInfo.gpu, vulInfo.surfaces[p_window._GLFW_WindowHandle()], &formatCount, nullptr);
         assert(!err);
 
         VkSurfaceFormatKHR *surfFormats = (VkSurfaceFormatKHR *)malloc(formatCount * sizeof(VkSurfaceFormatKHR));
-        err = vulInfo.fpGetPhysicalDeviceSurfaceFormatsKHR(vulInfo.gpu, vulInfo.surfaces[p_window], &formatCount, surfFormats);
+        err = vulInfo.fpGetPhysicalDeviceSurfaceFormatsKHR(vulInfo.gpu, vulInfo.surfaces[p_window._GLFW_WindowHandle()], &formatCount, surfFormats);
         assert(!err);
 
         // If the format list includes just one entry of VK_FORMAT_UNDEFINED,
@@ -580,24 +580,24 @@ namespace ROOT_SPACE
 
         // Check the surface capabilities and formats
         VkSurfaceCapabilitiesKHR surfCapabilities;
-        err = vulInfo.fpGetPhysicalDeviceSurfaceCapabilitiesKHR( vulInfo.gpu, vulInfo.surfaces[p_window], &surfCapabilities );
+        err = vulInfo.fpGetPhysicalDeviceSurfaceCapabilitiesKHR( vulInfo.gpu, vulInfo.surfaces[p_window._GLFW_WindowHandle()], &surfCapabilities );
         assert(!err);
 
         uint32_t presentModeCount;
-        err = vulInfo.fpGetPhysicalDeviceSurfacePresentModesKHR( vulInfo.gpu, vulInfo.surfaces[p_window], &presentModeCount, nullptr );
+        err = vulInfo.fpGetPhysicalDeviceSurfacePresentModesKHR( vulInfo.gpu, vulInfo.surfaces[p_window._GLFW_WindowHandle()], &presentModeCount, nullptr );
         assert(!err);
 
         VkPresentModeKHR *presentModes = (VkPresentModeKHR *)malloc(presentModeCount * sizeof(VkPresentModeKHR));
         assert(presentModes);
 
-        err = vulInfo.fpGetPhysicalDeviceSurfacePresentModesKHR( vulInfo.gpu, vulInfo.surfaces[p_window], &presentModeCount, presentModes );
+        err = vulInfo.fpGetPhysicalDeviceSurfacePresentModesKHR( vulInfo.gpu, vulInfo.surfaces[p_window._GLFW_WindowHandle()], &presentModeCount, presentModes );
         assert(!err);
 
         VkExtent2D swapchainExtent;
         // width and height are either both 0xFFFFFFFF, or both not 0xFFFFFFFF.
         if (surfCapabilities.currentExtent.width == 0xFFFFFFFF)
         {
-
+            
         }
 
         return false;

@@ -10,13 +10,15 @@
 #define ROOT_SPACE ws
 #endif //ROOT_SPACE
 
+#include "window.h"
+
 namespace ROOT_SPACE
 {
     class VGraphical
     {
     public:
         static bool initGraphical(void);
-        static bool initWindow( GLFWwindow * p_window );
+        static bool initWindow( window & p_window );
         static void __glfw_error_callback( int p_error, const char * p_description );
     };
 }
