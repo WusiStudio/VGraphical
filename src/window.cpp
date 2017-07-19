@@ -7,11 +7,26 @@ namespace ROOT_SPACE
 
     std::map< GLFWwindow * , window * > window::smWindows;
 
+
+    void window::setWindowSize( const glm::ivec2 & p_windowSize )
+    {
+        glfwSetWindowSize( mWindowHandle, p_windowSize.x, p_windowSize.y );
+    }
+    void window::setWindowPos( const glm::ivec2 & p_windowPos )
+    {
+        glfwSetWindowSize( mWindowHandle, p_windowPos.x, p_windowPos.y );
+    }
+
+    void window::setWindowTitle( const std::string & p_windowTitle )
+    {
+        mWindowTitle = p_windowTitle;
+        glfwSetWindowTitle( mWindowHandle, mWindowTitle.c_str() );
+    }
+
     GLFWwindow * window::_GLFW_WindowHandle(void) const
     {
         return mWindowHandle;
     }
-
 
     window::window( void )
     {
@@ -19,8 +34,6 @@ namespace ROOT_SPACE
         mWindowSize = glm::ivec2( 600, 500 );
         mWindowPos = glm::ivec2( 0, 0 );
         mWindowTitle = "Humble";
-        mKeyDown = nullptr;
-        mKeyUp = nullptr;
     }
 
     window::~window( void )
@@ -131,10 +144,12 @@ namespace ROOT_SPACE
     void window::onResize( const glm::ivec2 & p_windowSize )
     {
         mWindowSize = p_windowSize;
+        mWindowSizeChanged( mWindowSize );
     }
 
     void window::onPosChanged( const glm::ivec2 & p_windowPos )
     {
         mWindowPos = p_windowPos;
+        mWindowPosChanged( mWindowPos );
     }
 }

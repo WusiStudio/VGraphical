@@ -597,8 +597,75 @@ namespace ROOT_SPACE
         // width and height are either both 0xFFFFFFFF, or both not 0xFFFFFFFF.
         if (surfCapabilities.currentExtent.width == 0xFFFFFFFF)
         {
+            // If the surface size is undefined, the size is set to the size
+            // of the images requested, which must fit within the minimum and
+            // maximum values.
+            swapchainExtent.width = p_window.getWindowSize().x;
+            swapchainExtent.height = p_window.getWindowSize().y;
+
+            if (swapchainExtent.width < surfCapabilities.minImageExtent.width) {
+                swapchainExtent.width = surfCapabilities.minImageExtent.width;
+            } else if (swapchainExtent.width > surfCapabilities.maxImageExtent.width) {
+                swapchainExtent.width = surfCapabilities.maxImageExtent.width;
+            }
             
+            if (swapchainExtent.height < surfCapabilities.minImageExtent.height) {
+                swapchainExtent.height = surfCapabilities.minImageExtent.height;
+            } else if (swapchainExtent.height > surfCapabilities.maxImageExtent.height) {
+                swapchainExtent.height = surfCapabilities.maxImageExtent.height;
+            }
+        }else{
+            // If the surface size is defined, the swap chain size must match
+            swapchainExtent = surfCapabilities.currentExtent;
+            p_window.setWindowSize( glm::ivec2( surfCapabilities.currentExtent.width, surfCapabilities.currentExtent.height ) );
         }
+
+        VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+
+        // Determine the number of VkImage's to use in the swap chain.
+        // Application desires to only acquire 1 image at a time (which is
+        // "surfCapabilities.minImageCount").
+        uint32_t desiredNumOfSwapchainImages = surfCapabilities.minImageCount;
+        // If maxImageCount is 0, we can ask for as many images as we want;
+        // otherwise we're limited to maxImageCount
+        if ((surfCapabilities.maxImageCount > 0) &&
+            (desiredNumOfSwapchainImages > surfCapabilities.maxImageCount)) {
+            // Application must settle for fewer images than desired:
+            desiredNumOfSwapchainImages = surfCapabilities.maxImageCount;
+        }
+
+        VkSurfaceTransformFlagsKHR preTransform;
+        if (surfCapabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) 
+        {
+            preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+        } else {
+            preTransform = surfCapabilities.currentTransform;
+        }
+
+        VkSwapchainCreateInfoKHR swapchain;
+
+        swapchain.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        swapchain.pNext = NULL;
+        swapchain.surface = vulInfo.surfaces[p_window._GLFW_WindowHandle()];
+        swapchain.minImageCount = desiredNumOfSwapchainImages;
+        swapchain.imageFormat = vulInfo.format;
+        swapchain.imageColorSpace = vulInfo.color_space;
+        swapchain.imageExtent.width = swapchainExtent.width;
+        swapchain.imageExtent.height = swapchainExtent.height;
+        swapchain.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        swapchain.preTransform = (VkSurfaceTransformFlagBitsKHR)preTransform;
+        swapchain.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        swapchain.imageArrayLayers = 1;
+        swapchain.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        swapchain.queueFamilyIndexCount = 0;
+        swapchain.pQueueFamilyIndices = NULL;
+        swapchain.presentMode = swapchainPresentMode;
+        swapchain.oldSwapchain = oldSwapchain;
+        swapchain.clipped = true;
+
+        err = vulInfo.fpCreateSwapchainKHR(vulInfo.device, &swapchain, NULL, &vulInfo.swapchain);
+
+        assert(!err);
 
         return false;
     }

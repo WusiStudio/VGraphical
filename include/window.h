@@ -18,10 +18,18 @@ namespace ROOT_SPACE
     class window: public object
     {
         ATTIRBUTE_R( glm::ivec2, WindowSize );
+        ATTIRBUTE_R( glm::ivec2, WindowPos );
+        ATTIRBUTE_R( std::string, WindowTitle );
+
         EVENT( std::function< void( const glm::ivec2 & ) >, WindowSizeChanged );
+        EVENT( std::function< void( const glm::ivec2 & ) >, WindowPosChanged );
         
     public:
 		CREATEFUNC ( window );
+
+        void setWindowSize( const glm::ivec2 & p_windowSize );
+        void setWindowPos( const glm::ivec2 & p_windowPos );
+        void setWindowTitle( const std::string & p_windowTitle );
 
         GLFWwindow * _GLFW_WindowHandle(void) const;
         
@@ -49,13 +57,8 @@ namespace ROOT_SPACE
 
         GLFWwindow *    mWindowHandle;
 
-        glm::ivec2      mWindowPos;
-
-        std::string     mWindowTitle;
-
-        std::function< void ( const int p_key ) > mKeyDown;
-        std::function< void ( const int p_key ) > mKeyUp;
-        
+        // std::function< void ( const int p_key ) > mKeyDown;
+        // std::function< void ( const int p_key ) > mKeyUp;
         
     };
 };
