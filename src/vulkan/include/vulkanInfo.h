@@ -7,6 +7,12 @@
 #include <GLFW/glfw3.h>
 #include <map>
 
+typedef struct {
+    VkImage image;
+    VkCommandBuffer cmd;
+    VkImageView view;
+} SwapchainBuffers;
+
 class vulkanInfo
 {
 public:
@@ -50,16 +56,26 @@ public:
     PFN_vkAcquireNextImageKHR fpAcquireNextImageKHR;
     PFN_vkQueuePresentKHR fpQueuePresentKHR;
 
+    uint32_t swapchainImageCount;
     VkSwapchainKHR swapchain;
 
+    SwapchainBuffers *buffers;
     VkCommandPool cmd_pool;
 
+    struct {
+        VkFormat format;
+
+        VkImage image;
+        VkDeviceMemory mem;
+        VkImageView view;
+    } depth;
 
     VkCommandBuffer setup_cmd; 
     VkCommandBuffer draw_cmd;
 
     VkPhysicalDeviceMemoryProperties memory_properties;
 
+    uint32_t current_buffer;
     uint32_t queue_count;
 };
 
