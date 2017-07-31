@@ -20,7 +20,7 @@ namespace ROOT_SPACE
     {                                                                          \
         vulInfo.fp##entrypoint =                                                 \
             (PFN_vk##entrypoint)vkGetInstanceProcAddr(inst, "vk" #entrypoint); \
-        if (vulInfo.fp##entrypoint == nullptrptr) {                                    \
+        if (vulInfo.fp##entrypoint == nullptr) {                                    \
             LOG.error("vkGetInstanceProcAddr Failure: vkGetInstanceProcAddr failed to find vk" #entrypoint ); \
             return true;                                                        \
         }                                                                      \
@@ -30,7 +30,7 @@ namespace ROOT_SPACE
     {                                                                          \
         vulInfo.fp##entrypoint =                                                 \
             (PFN_vk##entrypoint)vkGetDeviceProcAddr(dev, "vk" #entrypoint);    \
-        if (vulInfo.fp##entrypoint == nullptrptr) {                                    \
+        if (vulInfo.fp##entrypoint == nullptr) {                                    \
             LOG.error("vkGetDeviceProcAddr Failure: vkGetDeviceProcAddr failed to find vk" #entrypoint );                           \
         }                                                                      \
     }
@@ -100,6 +100,26 @@ namespace ROOT_SPACE
         return false;
     }
 
+static bool memory_type_from_properties(vulkanInfo & p_vulInfo, uint32_t typeBits,
+                                        VkFlags requirements_mask,
+                                        uint32_t *typeIndex) {
+    uint32_t i;
+    // Search memtypes to find first index with those properties
+    for (i = 0; i < VK_MAX_MEMORY_TYPES; i++) {
+        if ((typeBits & 1) == 1) {
+            // Type is available, does it match user properties?
+            if ((p_vulInfo.memory_properties.memoryTypes[i].propertyFlags &
+                 requirements_mask) == requirements_mask) {
+                *typeIndex = i;
+                return true;
+            }
+        }
+        typeBits >>= 1;
+    }
+    // No memory types matched, return failure
+    return false;
+}
+
     bool VGraphical::initGraphical(void)
     {
 
@@ -125,7 +145,7 @@ namespace ROOT_SPACE
         vulInfo.enabled_layer_count = 0;
         vulInfo.enabled_extension_count = 0;
 
-        const char **instance_validation_layers = nullptrptr;
+        const char **instance_validation_layers = nullptr;
 
 
         char *instance_validation_layers_alt1[] = {
@@ -145,7 +165,7 @@ namespace ROOT_SPACE
         {
             //get instance layer count
             uint32_t instance_layer_count = 0;
-            err = vkEnumerateInstanceLayerProperties(&instance_layer_count, nullptrptr);
+            err = vkEnumerateInstanceLayerProperties(&instance_layer_count, nullptr);
             assert(!err);
 
             instance_validation_layers = (const char **)instance_validation_layers_alt1;
@@ -218,13 +238,13 @@ namespace ROOT_SPACE
         }
 
         uint32_t instance_extension_count = 0;
-        err = vkEnumerateInstanceExtensionProperties( nullptrptr, &instance_extension_count, nullptrptr );
+        err = vkEnumerateInstanceExtensionProperties( nullptr, &instance_extension_count, nullptr );
         assert( !err );
 
         if ( instance_extension_count > 0 ) 
         {
             VkExtensionProperties *instance_extensions = (VkExtensionProperties *)malloc( sizeof( VkExtensionProperties ) * instance_extension_count);
-            err = vkEnumerateInstanceExtensionProperties( nullptrptr, &instance_extension_count, instance_extensions );
+            err = vkEnumerateInstanceExtensionProperties( nullptr, &instance_extension_count, instance_extensions );
             assert( !err );
 
             for (uint32_t i = 0; i < instance_extension_count; i++) 
@@ -244,7 +264,7 @@ namespace ROOT_SPACE
 
 		VkApplicationInfo app;
 		app.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-		app.pNext = nullptrptr;
+		app.pNext = nullptr;
 		app.pApplicationName = "haha";
 		app.applicationVersion = 0;
 		app.pEngineName = "ws";
@@ -253,7 +273,7 @@ namespace ROOT_SPACE
 
 		VkInstanceCreateInfo inst_info;
 		inst_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		inst_info.pNext = nullptrptr;
+		inst_info.pNext = nullptr;
         inst_info.flags = 0;
 		inst_info.pApplicationInfo = &app;
 		inst_info.enabledLayerCount = vulInfo.enabled_layer_count;
@@ -263,7 +283,7 @@ namespace ROOT_SPACE
 
         uint32_t gpu_count;
 
-        err = vkCreateInstance( &inst_info, nullptrptr, &vulInfo.inst );
+        err = vkCreateInstance( &inst_info, nullptr, &vulInfo.inst );
         if (err == VK_ERROR_INCOMPATIBLE_DRIVER) 
         {
             LOG.error( "vkCreateInstance Failure: Cannot find a compatible Vulkan installable client driver "
@@ -284,7 +304,7 @@ namespace ROOT_SPACE
         }
 
         /* Make initial call to query gpu_count, then second call for gpu info*/
-        err = vkEnumeratePhysicalDevices( vulInfo.inst, &gpu_count, nullptrptr );
+        err = vkEnumeratePhysicalDevices( vulInfo.inst, &gpu_count, nullptr );
         assert( !err && gpu_count > 0 );
 
         if ( gpu_count > 0 ) 
@@ -310,14 +330,14 @@ namespace ROOT_SPACE
         VkBool32 swapchainExtFound = 0;
         vulInfo.enabled_extension_count = 0;
 
-        err = vkEnumerateDeviceExtensionProperties( vulInfo.gpu, nullptrptr, &device_extension_count, nullptrptr );
+        err = vkEnumerateDeviceExtensionProperties( vulInfo.gpu, nullptr, &device_extension_count, nullptr );
 
         assert( !err );
 
         if (device_extension_count > 0) 
         {
             VkExtensionProperties *device_extensions = (VkExtensionProperties *)malloc (sizeof( VkExtensionProperties ) * device_extension_count );
-            err = vkEnumerateDeviceExtensionProperties( vulInfo.gpu, nullptrptr, &device_extension_count, device_extensions );
+            err = vkEnumerateDeviceExtensionProperties( vulInfo.gpu, nullptr, &device_extension_count, device_extensions );
             assert( !err );
 
             for (uint32_t i = 0; i < device_extension_count; i++) {
@@ -376,9 +396,9 @@ namespace ROOT_SPACE
                 VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
             dbgCreateInfo.pfnCallback = vulInfo.use_break ? BreakCallback : dbgFunc;
             dbgCreateInfo.pUserData = &vulInfo;
-            dbgCreateInfo.pNext = nullptrptr;
+            dbgCreateInfo.pNext = nullptr;
 
-            err = vulInfo.CreateDebugReportCallback(vulInfo.inst, &dbgCreateInfo, nullptrptr,
+            err = vulInfo.CreateDebugReportCallback(vulInfo.inst, &dbgCreateInfo, nullptr,
                                               &vulInfo.msg_callback);
             switch (err) {
             case VK_SUCCESS:
@@ -403,8 +423,8 @@ namespace ROOT_SPACE
 
         vkGetPhysicalDeviceProperties( vulInfo.gpu, &vulInfo.gpu_props );
         
-        // Query with nullptrptr data to get count
-        vkGetPhysicalDeviceQueueFamilyProperties( vulInfo.gpu, &vulInfo.queue_count, nullptrptr );
+        // Query with nullptr data to get count
+        vkGetPhysicalDeviceQueueFamilyProperties( vulInfo.gpu, &vulInfo.queue_count, nullptr );
 
         vulInfo.queue_props = ( VkQueueFamilyProperties * )malloc( vulInfo.queue_count * sizeof( VkQueueFamilyProperties ) );
         vkGetPhysicalDeviceQueueFamilyProperties(vulInfo.gpu, &vulInfo.queue_count, vulInfo.queue_props);
@@ -418,7 +438,7 @@ namespace ROOT_SPACE
         VkDeviceQueueCreateInfo queue; 
         queue.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queue.flags = 0;
-        queue.pNext = nullptrptr;
+        queue.pNext = nullptr;
         queue.queueFamilyIndex = vulInfo.graphics_queue_node_index;
         queue.queueCount = 1;
         queue.pQueuePriorities = queue_priorities;
@@ -432,17 +452,17 @@ namespace ROOT_SPACE
 
         VkDeviceCreateInfo device;
         device.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        device.pNext = nullptrptr;
+        device.pNext = nullptr;
         device.flags = 0;
         device.queueCreateInfoCount = 1;
         device.pQueueCreateInfos = &queue;
         device.enabledLayerCount = 0;
-        device.ppEnabledLayerNames = nullptrptr;
+        device.ppEnabledLayerNames = nullptr;
         device.enabledExtensionCount = vulInfo.enabled_extension_count;
         device.ppEnabledExtensionNames = (const char *const *)vulInfo.extension_names;
         device.pEnabledFeatures = &features;
 
-        err = vkCreateDevice(vulInfo.gpu, &device, nullptrptr, &vulInfo.device);
+        err = vkCreateDevice(vulInfo.gpu, &device, nullptr, &vulInfo.device);
         assert(!err);
 
         GET_DEVICE_PROC_ADDR(vulInfo.device, CreateSwapchainKHR);
@@ -462,7 +482,7 @@ namespace ROOT_SPACE
         // Create a WSI surface for the window:
         VkSurfaceKHR t_surface;
         vulInfo.surfaces[p_window._GLFW_WindowHandle()] = t_surface;
-        glfwCreateWindowSurface( vulInfo.inst, p_window._GLFW_WindowHandle(), nullptrptr, &vulInfo.surfaces[p_window._GLFW_WindowHandle()]);
+        glfwCreateWindowSurface( vulInfo.inst, p_window._GLFW_WindowHandle(), nullptr, &vulInfo.surfaces[p_window._GLFW_WindowHandle()]);
 
         // Iterate over each queue to learn whether it supports presenting:
         VkBool32 *supportsPresent = (VkBool32 *)malloc(vulInfo.queue_count * sizeof(VkBool32));
@@ -530,7 +550,7 @@ namespace ROOT_SPACE
                      
         // Get the list of VkFormat's that are supported:
         uint32_t formatCount;
-        err = vulInfo.fpGetPhysicalDeviceSurfaceFormatsKHR(vulInfo.gpu, vulInfo.surfaces[p_window._GLFW_WindowHandle()], &formatCount, nullptrptr);
+        err = vulInfo.fpGetPhysicalDeviceSurfaceFormatsKHR(vulInfo.gpu, vulInfo.surfaces[p_window._GLFW_WindowHandle()], &formatCount, nullptr);
         assert(!err);
 
         VkSurfaceFormatKHR *surfFormats = (VkSurfaceFormatKHR *)malloc(formatCount * sizeof(VkSurfaceFormatKHR));
@@ -557,16 +577,16 @@ namespace ROOT_SPACE
         // create command poll
         VkCommandPoolCreateInfo cmd_pool_info;
         cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        cmd_pool_info.pNext = nullptrptr;
+        cmd_pool_info.pNext = nullptr;
         cmd_pool_info.queueFamilyIndex = vulInfo.graphics_queue_node_index;
         cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-        err = vkCreateCommandPool(vulInfo.device, &cmd_pool_info, nullptrptr, &vulInfo.cmd_pool);
+        err = vkCreateCommandPool(vulInfo.device, &cmd_pool_info, nullptr, &vulInfo.cmd_pool);
         assert(!err);
 
         VkCommandBufferAllocateInfo cmd;
         cmd.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cmd.pNext = nullptrptr;
+        cmd.pNext = nullptr;
         cmd.commandPool = vulInfo.cmd_pool;
         cmd.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         cmd.commandBufferCount = 1;
@@ -584,7 +604,7 @@ namespace ROOT_SPACE
         assert(!err);
 
         uint32_t presentModeCount;
-        err = vulInfo.fpGetPhysicalDeviceSurfacePresentModesKHR( vulInfo.gpu, vulInfo.surfaces[p_window._GLFW_WindowHandle()], &presentModeCount, nullptrptr );
+        err = vulInfo.fpGetPhysicalDeviceSurfacePresentModesKHR( vulInfo.gpu, vulInfo.surfaces[p_window._GLFW_WindowHandle()], &presentModeCount, nullptr );
         assert(!err);
 
         VkPresentModeKHR *presentModes = (VkPresentModeKHR *)malloc(presentModeCount * sizeof(VkPresentModeKHR));
@@ -662,16 +682,16 @@ namespace ROOT_SPACE
         swapchain.presentMode = swapchainPresentMode;
         swapchain.oldSwapchain = oldSwapchain;
         swapchain.clipped = true;
+        swapchain.flags = VK_SAMPLE_COUNT_1_BIT;
 
         err = vulInfo.fpCreateSwapchainKHR(vulInfo.device, &swapchain, nullptr, &vulInfo.swapchain);
-
         assert(!err);
 
         // If we just re-created an existing swapchain, we should destroy the old
         // swapchain at this point.
         // Note: destroying the swapchain also cleans up all its associated
         // presentable images once the platform is done with them.
-        if (oldSwapchain != VK_nullptr_HANDLE) {
+        if (oldSwapchain != VK_NULL_HANDLE) {
             vulInfo.fpDestroySwapchainKHR(vulInfo.device, oldSwapchain, nullptr);
         }
 
@@ -719,12 +739,13 @@ namespace ROOT_SPACE
 
         vulInfo.current_buffer = 0;
 
-        if (presentModes != nullptrptr) {
+        if (presentModes != nullptr) {
             free(presentModes);
         }
 
         //prepare depth
         const VkFormat depth_format = VK_FORMAT_D16_UNORM;
+        // VkImageLayout t_initialLayout;
         VkImageCreateInfo image;
         image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         image.pNext = nullptr;
@@ -739,6 +760,8 @@ namespace ROOT_SPACE
         image.tiling = VK_IMAGE_TILING_OPTIMAL;
         image.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
         image.flags = 0;
+        image.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
 
         VkMemoryAllocateInfo mem_alloc;
         mem_alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -765,7 +788,9 @@ namespace ROOT_SPACE
         vulInfo.depth.format = depth_format;
 
         /* create image */
+        LOG.info("----------------");
         err = vkCreateImage(vulInfo.device, &image, NULL, &vulInfo.depth.image);
+        LOG.info("----------------");
         assert(!err);
 
         /* get memory requirements for this object */
@@ -773,7 +798,7 @@ namespace ROOT_SPACE
 
         /* select memory size and type */
         mem_alloc.allocationSize = mem_reqs.size;
-        pass = memory_type_from_properties(demo, mem_reqs.memoryTypeBits,
+        pass = memory_type_from_properties(vulInfo, mem_reqs.memoryTypeBits,
                                         0, /* No requirements */
                                         &mem_alloc.memoryTypeIndex);
         assert(pass);
