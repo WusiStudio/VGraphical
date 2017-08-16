@@ -435,7 +435,7 @@ static bool memory_type_from_properties(vulkanInfo & p_vulInfo, uint32_t typeBit
 
         //init device
         float queue_priorities[1] = {0.0};
-        VkDeviceQueueCreateInfo queue; 
+		VkDeviceQueueCreateInfo queue = {};
         queue.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queue.flags = 0;
         queue.pNext = nullptr;
@@ -450,7 +450,7 @@ static bool memory_type_from_properties(vulkanInfo & p_vulInfo, uint32_t typeBit
             features.shaderClipDistance = VK_TRUE;
         }
 
-        VkDeviceCreateInfo device;
+		VkDeviceCreateInfo device = {};
         device.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         device.pNext = nullptr;
         device.flags = 0;
@@ -575,16 +575,15 @@ static bool memory_type_from_properties(vulkanInfo & p_vulInfo, uint32_t typeBit
 
 
         // create command poll
-        VkCommandPoolCreateInfo cmd_pool_info;
-        cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        cmd_pool_info.pNext = nullptr;
-        cmd_pool_info.queueFamilyIndex = vulInfo.graphics_queue_node_index;
-        cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		VkCommandPoolCreateInfo cmd_pool_info = {};
+		cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		cmd_pool_info.queueFamilyIndex = 0;
+		cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
         err = vkCreateCommandPool(vulInfo.device, &cmd_pool_info, nullptr, &vulInfo.cmd_pool);
         assert(!err);
 
-        VkCommandBufferAllocateInfo cmd;
+		VkCommandBufferAllocateInfo cmd = {};
         cmd.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         cmd.pNext = nullptr;
         cmd.commandPool = vulInfo.cmd_pool;
@@ -654,7 +653,7 @@ static bool memory_type_from_properties(vulkanInfo & p_vulInfo, uint32_t typeBit
             desiredNumOfSwapchainImages = surfCapabilities.maxImageCount;
         }
 
-        VkSurfaceTransformFlagsKHR preTransform;
+		VkSurfaceTransformFlagsKHR preTransform;
         if (surfCapabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) 
         {
             preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
@@ -662,7 +661,7 @@ static bool memory_type_from_properties(vulkanInfo & p_vulInfo, uint32_t typeBit
             preTransform = surfCapabilities.currentTransform;
         }
 
-        VkSwapchainCreateInfoKHR swapchain;
+		VkSwapchainCreateInfoKHR swapchain = { };
 
         swapchain.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         swapchain.pNext = nullptr;
@@ -711,7 +710,7 @@ static bool memory_type_from_properties(vulkanInfo & p_vulInfo, uint32_t typeBit
 
         for (uint32_t i = 0; i < vulInfo.swapchainImageCount; i++) 
         {
-            VkImageViewCreateInfo color_attachment_view;
+			VkImageViewCreateInfo color_attachment_view = { };
             color_attachment_view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
             color_attachment_view.pNext = nullptr;
             color_attachment_view.format = vulInfo.format;
@@ -726,8 +725,6 @@ static bool memory_type_from_properties(vulkanInfo & p_vulInfo, uint32_t typeBit
             color_attachment_view.subresourceRange.baseArrayLayer = 0;
             color_attachment_view.subresourceRange.layerCount = 1;
 
-            color_attachment_view.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            color_attachment_view.flags = 0;
 
             vulInfo.buffers[i].image = swapchainImages[i];
             color_attachment_view.image = vulInfo.buffers[i].image;
@@ -746,8 +743,8 @@ static bool memory_type_from_properties(vulkanInfo & p_vulInfo, uint32_t typeBit
         //prepare depth
         const VkFormat depth_format = VK_FORMAT_D16_UNORM;
         // VkImageLayout t_initialLayout;
-        VkImageCreateInfo image;
-        image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		VkImageCreateInfo image = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+        //image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         image.pNext = nullptr;
         image.imageType = VK_IMAGE_TYPE_2D;
         image.format = depth_format;
@@ -759,17 +756,14 @@ static bool memory_type_from_properties(vulkanInfo & p_vulInfo, uint32_t typeBit
         image.samples = VK_SAMPLE_COUNT_1_BIT;
         image.tiling = VK_IMAGE_TILING_OPTIMAL;
         image.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-        image.flags = 0;
-        image.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-
-        VkMemoryAllocateInfo mem_alloc;
+		VkMemoryAllocateInfo mem_alloc = { };
         mem_alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         mem_alloc.pNext = nullptr;
         mem_alloc.allocationSize = 0;
         mem_alloc.memoryTypeIndex = 0;
 
-        VkImageViewCreateInfo view;
+		VkImageViewCreateInfo view = {};
         view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         view.pNext = NULL;
         view.image = VK_NULL_HANDLE;
@@ -788,9 +782,7 @@ static bool memory_type_from_properties(vulkanInfo & p_vulInfo, uint32_t typeBit
         vulInfo.depth.format = depth_format;
 
         /* create image */
-        LOG.info("----------------");
         err = vkCreateImage(vulInfo.device, &image, NULL, &vulInfo.depth.image);
-        LOG.info("----------------");
         assert(!err);
 
         /* get memory requirements for this object */
